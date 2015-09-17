@@ -1,0 +1,4 @@
+[package]
+name = "twiddle"
+version = "0.1.0"
+authors = ["Nicolette Verlinden <nicole@nicole.moe>"]
