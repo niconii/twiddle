@@ -1,6 +1,6 @@
 [package]
 name = "twiddle"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Nicolette Verlinden <nicole@nicole.moe>"]
 
 description = "Bit-twiddling utility functions"
@@ -9,6 +9,6 @@ documentation = "http://nicole.moe/docs/twiddle/index.html"
 repository = "https://github.com/niconii/twiddle"
 
 readme = "README.md"
-keyword = ["bitwise", "bit", "bits"]
+keywords = ["bitwise", "bit", "bits"]
 
 license = "MIT"

@@ -118,7 +118,7 @@ pub trait Twiddle {
     /// - Once there are no more bits remaining, the iterator will return
     ///   None even if there are more lengths remaining.
     fn split<I>(self, lengths: I) -> Split<Self, <I as IntoIterator>::IntoIter>
-        where I: IntoIterator<Item=usize>;
+        where I: IntoIterator<Item=usize>, Self: Sized;
 }
 
 impl<T> Twiddle for T
