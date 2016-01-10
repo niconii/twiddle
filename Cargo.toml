@@ -11,4 +11,4 @@ repository = "https://github.com/niconii/twiddle"
 readme = "README.md"
 keywords = ["bitwise", "bit", "bits"]
 
-license = "MIT"
+license = "MIT/Apache-2.0"
