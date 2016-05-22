@@ -49,6 +49,8 @@
 //! }
 //! ```
 
+#![no_std]
+
 use core::cmp::PartialEq;
 use core::iter::Iterator;
 use core::num::Wrapping as Wr;
