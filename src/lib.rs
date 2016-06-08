@@ -49,10 +49,12 @@
 //! }
 //! ```
 
-use std::cmp::PartialEq;
-use std::iter::Iterator;
-use std::num::Wrapping as Wr;
-use std::ops::{Range, Shl, Shr, Not, BitAnd, BitOr};
+#![no_std]
+
+use core::cmp::PartialEq;
+use core::iter::Iterator;
+use core::num::Wrapping as Wr;
+use core::ops::{Range, Shl, Shr, Not, BitAnd, BitOr};
 
 /// A trait for bit-twiddling utility functions.
 pub trait Twiddle {
