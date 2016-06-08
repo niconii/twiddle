@@ -205,7 +205,8 @@ where
     }
 }
 
-trait Int:
+/// A helper trait to avoid dependencies.
+pub trait Int:
     Shl<usize, Output=Self> +
     Shr<usize, Output=Self> +
     Not<Output=Self> +
