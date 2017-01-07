@@ -6,10 +6,10 @@ You can use it as a dependency by adding it to your `Cargo.toml` file.
 
 ```toml
 [dependencies]
-twiddle = "*"
+twiddle = "0.1.4"
 ```
 
-[Documentation](http://nicole.moe/docs/twiddle/index.html)
+[Documentation](https://docs.rs/twiddle/0.1.4/twiddle/)
 
 ## Example
 

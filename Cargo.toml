@@ -1,11 +1,11 @@
 [package]
 name = "twiddle"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Nicolette Verlinden <nicole@nicole.moe>"]
 
 description = "Bit-twiddling utility functions"
 
-documentation = "http://nicole.moe/docs/twiddle/index.html"
+documentation = "https://docs.rs/twiddle/0.1.4/twiddle/"
 repository = "https://github.com/niconii/twiddle"
 
 readme = "README.md"
