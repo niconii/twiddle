@@ -50,11 +50,14 @@
 //! ```
 
 #![no_std]
+#![cfg_attr(feature="inclusive_range", feature(inclusive_range, inclusive_range_syntax))]
 
 use core::cmp::PartialEq;
 use core::iter::Iterator;
 use core::num::Wrapping;
 use core::ops::{Range, Shl, Shr, Sub, Not, BitAnd, BitOr};
+#[cfg(feature = "inclusive_range")]
+use core::ops::RangeInclusive;
 
 #[derive(Clone, Copy, Debug)]
 pub struct BitRange {
@@ -67,6 +70,20 @@ impl From<Range<usize>> for BitRange {
         BitRange {
             start: range.start,
             end: range.end,
+        }
+    }
+}
+
+#[cfg(feature = "inclusive_range")]
+impl From<RangeInclusive<usize>> for BitRange {
+    fn from(range: RangeInclusive<usize>) -> Self {
+        let (start, end) = match range {
+            RangeInclusive::Empty { at } => (at, at),
+            RangeInclusive::NonEmpty { start, end } => (start, end),
+        };
+        BitRange {
+            start: start,
+            end: end,
         }
     }
 }

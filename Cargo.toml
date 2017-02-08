@@ -12,3 +12,8 @@ readme = "README.md"
 keywords = ["bitwise", "bit", "bits"]
 
 license = "MIT/Apache-2.0"
+
+[features]
+default-features = []
+inclusive_range = []
+unstable = ["inclusive_range"]
