@@ -9,7 +9,7 @@ You can use it as a dependency by adding it to your `Cargo.toml` file.
 twiddle = "0.3"
 ```
 
-[Documentation](https://docs.rs/twiddle/0.2.0/twiddle/)
+[Documentation](https://docs.rs/twiddle/0.3.0/twiddle/)
 
 ## Example
 
