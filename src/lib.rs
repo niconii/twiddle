@@ -1,4 +1,4 @@
-// Copyright 2016 Nicolette Verlinden
+// Copyright 2017 Nicolette Verlinden
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -53,8 +53,8 @@
 
 use core::cmp::PartialEq;
 use core::iter::Iterator;
-use core::num::Wrapping as Wr;
-use core::ops::{Range, Shl, Shr, Not, BitAnd, BitOr};
+use core::num::Wrapping;
+use core::ops::{Range, Shl, Shr, Sub, Not, BitAnd, BitOr};
 
 /// A trait for bit-twiddling utility functions.
 pub trait Twiddle {
@@ -67,7 +67,7 @@ pub trait Twiddle {
     /// let mask = u32::mask(9..0);
     /// assert_eq!(mask, 0x3ff);
     /// ```
-    fn mask(range: Range<usize>) -> Self;
+    fn mask(range: Range<u32>) -> Self;
 
     /// Returns a given bit as a boolean.
     ///
@@ -80,7 +80,7 @@ pub trait Twiddle {
     ///     println!("Bit 6 is set!")
     /// }
     /// ```
-    fn bit(self, bit: usize) -> bool;
+    fn bit(self, bit: u32) -> bool;
 
     /// Returns a set of bits.
     ///
@@ -91,7 +91,7 @@ pub trait Twiddle {
     /// let word: u16 = 0b0011_0101_1000_0000;
     /// assert_eq!(word.bits(12..8), 0b10101);
     /// ```
-    fn bits(self, range: Range<usize>) -> Self;
+    fn bits(self, range: Range<u32>) -> Self;
 
     /// Replaces a set of bits with another.
     ///
@@ -106,7 +106,7 @@ pub trait Twiddle {
     /// # Notes
     ///
     /// - If too many bits are given, the highest bits will be truncated.
-    fn replace(self, range: Range<usize>, bits: Self) -> Self;
+    fn replace(self, range: Range<u32>, bits: Self) -> Self;
 
     /// Splits a number into an iterator over sets of bits.
     ///
@@ -128,46 +128,43 @@ pub trait Twiddle {
     /// - Once there are no more bits remaining, the iterator will return
     ///   None even if there are more lengths remaining.
     fn split<I>(self, lengths: I) -> Split<Self, <I as IntoIterator>::IntoIter>
-        where I: IntoIterator<Item=usize>, Self: Sized;
+        where I: IntoIterator<Item=u32>, Self: Sized;
 }
 
-impl<T> Twiddle for T
-where T: Int, Wr<T>: Shr<usize, Output=Wr<T>>
+impl<T> Twiddle for T where
+    T: Int,
+    Wrapping<T>: Sub<Output=Wrapping<T>>
 {
-    fn mask(range: Range<usize>) -> T {
+    fn mask(range: Range<u32>) -> T {
         debug_assert!(range.start < T::bit_width());
         debug_assert!(range.end <= range.start);
 
-        let m = |bit| {
-            if bit != 0 {
-                (Wr(!T::zero()) >> (Wr(T::bit_width()) - Wr(bit)).0).0
-            } else {
-                T::zero()
-            }
-        };
+        // cshl is << but with overlong shifts resulting in 0
+        let top = Wrapping(T::one().cshl(1 + range.start - range.end));
+        let one = Wrapping(T::one());
 
-        m(range.start + 1) & !m(range.end)
+        (top - one).0 << range.end
     }
 
-    fn bit(self, bit: usize) -> bool {
+    fn bit(self, bit: u32) -> bool {
         ((self >> bit) & T::one()) != T::zero()
     }
 
-    fn bits(self, range: Range<usize>) -> T {
+    fn bits(self, range: Range<u32>) -> T {
         (self & T::mask(range.clone())) >> range.end
     }
 
-    fn replace(self, range: Range<usize>, bits: T) -> T {
+    fn replace(self, range: Range<u32>, bits: T) -> T {
         let mask = T::mask(range.clone());
         (self & !mask) | ((bits << range.end) & mask)
     }
 
     fn split<I>(self, lengths: I) -> Split<T, <I as IntoIterator>::IntoIter>
-    where I: IntoIterator<Item=usize> {
+    where I: IntoIterator<Item=u32> {
         Split {
             number: self,
             lengths: lengths.into_iter(),
-            bits_left: T::bit_width() as isize
+            bits_left: T::bit_width() as i32
         }
     }
 }
@@ -176,13 +173,12 @@ where T: Int, Wr<T>: Shr<usize, Output=Wr<T>>
 pub struct Split<T, I> {
     number: T,
     lengths: I,
-    bits_left: isize
+    bits_left: i32
 }
 
-impl<T, I> Iterator for Split<T, I>
-where
+impl<T, I> Iterator for Split<T, I> where
     T: Twiddle + Int,
-    I: Iterator<Item=usize>
+    I: Iterator<Item=u32>
 {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -197,7 +193,7 @@ where
 
                 let bits = self.number.bits(start..end);
                 self.number = self.number << n;
-                self.bits_left -= n as isize;
+                self.bits_left -= n as i32;
 
                 Some(bits)
             }
@@ -207,34 +203,38 @@ where
 
 /// A helper trait to avoid dependencies.
 pub trait Int:
-    Shl<usize, Output=Self> +
-    Shr<usize, Output=Self> +
+    Shl<u32, Output=Self> +
+    Shr<u32, Output=Self> +
     Not<Output=Self> +
     BitAnd<Output=Self> +
     BitOr<Output=Self> +
     PartialEq<Self> +
     Clone + Copy
 {
-    fn bit_width() -> usize;
+    fn bit_width() -> u32;
     fn zero() -> Self;
     fn one() -> Self;
+    fn cshl(self, n: u32) -> Self;
 }
 
 macro_rules! impl_int {
     ($($t:ty : $w:expr, $z:expr, $o:expr);*) => ($(
         impl Int for $t {
-            fn bit_width() -> usize { $w }
+            fn bit_width() -> u32 { $w }
             fn zero() -> Self { $z }
             fn one() -> Self { $o }
+            fn cshl(self, n: u32) -> Self {
+                self.checked_shl(n).unwrap_or(0)
+            }
         }
     )*)
 }
 
 impl_int! {
-    u8:   8usize, 0u8,  1u8;
-    u16: 16usize, 0u16, 1u16;
-    u32: 32usize, 0u32, 1u32;
-    u64: 64usize, 0u64, 1u64
+    u8:   8, 0, 1;
+    u16: 16, 0, 1;
+    u32: 32, 0, 1;
+    u64: 64, 0, 1
 }
 
 #[cfg(test)]
@@ -279,12 +279,12 @@ mod tests {
     fn bit() {
         let byte: u8 = 0b0010_1001;
 
-        let mut bits = Vec::new();
-        for i in (0..8).rev() {
-            bits.push(byte.bit(i));
+        let mut bits = [false; 8];
+        for i in 0..8 {
+            bits[i as usize] = byte.bit(7-i);
         }
 
-        assert_eq!(bits, vec![false, false, true, false, true, false, false, true]);
+        assert_eq!(bits, [false, false, true, false, true, false, false, true]);
     }
 
     #[test]
@@ -350,9 +350,12 @@ mod tests {
     #[test]
     fn split() {
         let n: u32 = 0b111_000000_1111111_0000_1111_000000_11;
-        let lengths = vec![3, 6, 7, 4, 4, 6, 5, 9];
+        let lengths = [3, 6, 7, 4, 4, 6, 5, 9];
 
-        let sets = n.split(lengths).collect::<Vec<_>>();
-        assert_eq!(sets, vec![0b111, 0b0, 0b1111111, 0b0, 0b1111, 0b0, 0b11000]);
+        let mut sets = [0; 7];
+        for (i, set) in n.split(lengths.iter().cloned()).enumerate() {
+            sets[i] = set;
+        }
+        assert_eq!(sets, [0b111, 0b0, 0b1111111, 0b0, 0b1111, 0b0, 0b11000]);
     }
 }
