@@ -67,7 +67,7 @@ pub trait Twiddle {
     /// let mask = u32::mask(9..0);
     /// assert_eq!(mask, 0x3ff);
     /// ```
-    fn mask(range: Range<u32>) -> Self;
+    fn mask(range: Range<usize>) -> Self;
 
     /// Returns a given bit as a boolean.
     ///
@@ -80,7 +80,7 @@ pub trait Twiddle {
     ///     println!("Bit 6 is set!")
     /// }
     /// ```
-    fn bit(self, bit: u32) -> bool;
+    fn bit(self, bit: usize) -> bool;
 
     /// Returns a set of bits.
     ///
@@ -91,7 +91,7 @@ pub trait Twiddle {
     /// let word: u16 = 0b0011_0101_1000_0000;
     /// assert_eq!(word.bits(12..8), 0b10101);
     /// ```
-    fn bits(self, range: Range<u32>) -> Self;
+    fn bits(self, range: Range<usize>) -> Self;
 
     /// Replaces a set of bits with another.
     ///
@@ -106,7 +106,7 @@ pub trait Twiddle {
     /// # Notes
     ///
     /// - If too many bits are given, the highest bits will be truncated.
-    fn replace(self, range: Range<u32>, bits: Self) -> Self;
+    fn replace(self, range: Range<usize>, bits: Self) -> Self;
 
     /// Splits a number into an iterator over sets of bits.
     ///
@@ -128,14 +128,14 @@ pub trait Twiddle {
     /// - Once there are no more bits remaining, the iterator will return
     ///   None even if there are more lengths remaining.
     fn split<I>(self, lengths: I) -> Split<Self, <I as IntoIterator>::IntoIter>
-        where I: IntoIterator<Item=u32>, Self: Sized;
+        where I: IntoIterator<Item=usize>, Self: Sized;
 }
 
 impl<T> Twiddle for T where
     T: Int,
     Wrapping<T>: Sub<Output=Wrapping<T>>
 {
-    fn mask(range: Range<u32>) -> T {
+    fn mask(range: Range<usize>) -> T {
         debug_assert!(range.start < T::bit_width());
         debug_assert!(range.end <= range.start);
 
@@ -146,25 +146,25 @@ impl<T> Twiddle for T where
         (top - one).0 << range.end
     }
 
-    fn bit(self, bit: u32) -> bool {
+    fn bit(self, bit: usize) -> bool {
         ((self >> bit) & T::one()) != T::zero()
     }
 
-    fn bits(self, range: Range<u32>) -> T {
+    fn bits(self, range: Range<usize>) -> T {
         (self & T::mask(range.clone())) >> range.end
     }
 
-    fn replace(self, range: Range<u32>, bits: T) -> T {
+    fn replace(self, range: Range<usize>, bits: T) -> T {
         let mask = T::mask(range.clone());
         (self & !mask) | ((bits << range.end) & mask)
     }
 
     fn split<I>(self, lengths: I) -> Split<T, <I as IntoIterator>::IntoIter>
-    where I: IntoIterator<Item=u32> {
+    where I: IntoIterator<Item=usize> {
         Split {
             number: self,
             lengths: lengths.into_iter(),
-            bits_left: T::bit_width() as i32
+            bits_left: T::bit_width() as isize
         }
     }
 }
@@ -173,12 +173,12 @@ impl<T> Twiddle for T where
 pub struct Split<T, I> {
     number: T,
     lengths: I,
-    bits_left: i32
+    bits_left: isize
 }
 
 impl<T, I> Iterator for Split<T, I> where
     T: Twiddle + Int,
-    I: Iterator<Item=u32>
+    I: Iterator<Item=usize>
 {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -193,7 +193,7 @@ impl<T, I> Iterator for Split<T, I> where
 
                 let bits = self.number.bits(start..end);
                 self.number = self.number << n;
-                self.bits_left -= n as i32;
+                self.bits_left -= n as isize;
 
                 Some(bits)
             }
@@ -203,28 +203,28 @@ impl<T, I> Iterator for Split<T, I> where
 
 /// A helper trait to avoid dependencies.
 pub trait Int:
-    Shl<u32, Output=Self> +
-    Shr<u32, Output=Self> +
+    Shl<usize, Output=Self> +
+    Shr<usize, Output=Self> +
     Not<Output=Self> +
     BitAnd<Output=Self> +
     BitOr<Output=Self> +
     PartialEq<Self> +
     Clone + Copy
 {
-    fn bit_width() -> u32;
+    fn bit_width() -> usize;
     fn zero() -> Self;
     fn one() -> Self;
-    fn cshl(self, n: u32) -> Self;
+    fn cshl(self, n: usize) -> Self;
 }
 
 macro_rules! impl_int {
     ($($t:ty : $w:expr, $z:expr, $o:expr);*) => ($(
         impl Int for $t {
-            fn bit_width() -> u32 { $w }
+            fn bit_width() -> usize { $w }
             fn zero() -> Self { $z }
             fn one() -> Self { $o }
-            fn cshl(self, n: u32) -> Self {
-                self.checked_shl(n).unwrap_or(0)
+            fn cshl(self, n: usize) -> Self {
+                self.checked_shl(n as u32).unwrap_or(0)
             }
         }
     )*)
@@ -281,7 +281,7 @@ mod tests {
 
         let mut bits = [false; 8];
         for i in 0..8 {
-            bits[i as usize] = byte.bit(7-i);
+            bits[i] = byte.bit(7-i);
         }
 
         assert_eq!(bits, [false, false, true, false, true, false, false, true]);
