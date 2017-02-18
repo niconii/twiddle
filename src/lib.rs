@@ -283,21 +283,29 @@ mod tests {
     #[test]
     fn mask_middle() {
         assert_eq!(u8::mask(4..2), 0b0001_1100);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(u8::mask(4...2), 0b0001_1100);
     }
 
     #[test]
     fn mask_top() {
         assert_eq!(u8::mask(7..3), 0b1111_1000);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(u8::mask(7...3), 0b1111_1000);
     }
 
     #[test]
     fn mask_bottom() {
         assert_eq!(u8::mask(2..0), 0b0000_0111);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(u8::mask(2...0), 0b0000_0111);
     }
 
     #[test]
     fn mask_full() {
         assert_eq!(u8::mask(7..0), 0b1111_1111);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(u8::mask(7...0), 0b1111_1111);
     }
 
     #[test]
@@ -305,6 +313,8 @@ mod tests {
     #[should_panic(expected = "assertion failed")]
     fn mask_reversed() {
         u8::mask(2..4);
+        #[cfg(feature = "inclusive_range")]
+        u8::mask(2...4);
     }
 
     #[test]
@@ -312,6 +322,8 @@ mod tests {
     #[should_panic(expected = "assertion failed")]
     fn mask_overflow() {
         u8::mask(99..2);
+        #[cfg(feature = "inclusive_range")]
+        u8::mask(99...2);
     }
 
     #[test]
@@ -329,26 +341,38 @@ mod tests {
     #[test]
     fn bits_middle() {
         assert_eq!(0b0010_1110_1001_0011u16.bits(10..3), 0b0000_0000_1101_0010);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b0010_1110_1001_0011u16.bits(10...3), 0b0000_0000_1101_0010);
     }
 
     #[test]
     fn bits_top() {
         assert_eq!(0b1110_0011_0011_1111u16.bits(15..12), 0b0000_0000_0000_1110);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b1110_0011_0011_1111u16.bits(15...12),
+                   0b0000_0000_0000_1110);
     }
 
     #[test]
     fn bits_bottom() {
         assert_eq!(0b0111_1011_1000_0110u16.bits(6..0), 0b0000_0000_0000_0110);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b0111_1011_1000_0110u16.bits(6...0), 0b0000_0000_0000_0110);
     }
 
     #[test]
     fn bits_full() {
         assert_eq!(0b1100_1010_0111_1000u16.bits(15..0), 0b1100_1010_0111_1000);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b1100_1010_0111_1000u16.bits(15...0), 0b1100_1010_0111_1000);
     }
 
     #[test]
     fn replace_middle() {
         assert_eq!(0b0111_0010_1100_1101u16.replace(11..5, 0b011_0011),
+                   0b0111_0110_0110_1101u16);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b0111_0010_1100_1101u16.replace(11...5, 0b011_0011),
                    0b0111_0110_0110_1101u16);
     }
 
@@ -356,11 +380,17 @@ mod tests {
     fn replace_top() {
         assert_eq!(0b0011_1100_0101_0110u16.replace(15..10, 0b11_0101),
                    0b1101_0100_0101_0110u16);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b0011_1100_0101_0110u16.replace(15...10, 0b11_0101),
+                   0b1101_0100_0101_0110u16);
     }
 
     #[test]
     fn replace_bottom() {
         assert_eq!(0b1111_1001_0100_1100u16.replace(7..0, 0b1110_1110),
+                   0b1111_1001_1110_1110u16);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b1111_1001_0100_1100u16.replace(7...0, 0b1110_1110),
                    0b1111_1001_1110_1110u16);
     }
 
@@ -368,11 +398,17 @@ mod tests {
     fn replace_full() {
         assert_eq!(0b1001_1001_1110_0001u16.replace(15..0, 0b1010_0101_0010_0111),
                    0b1010_0101_0010_0111);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b1001_1001_1110_0001u16.replace(15...0, 0b1010_0101_0010_0111),
+                   0b1010_0101_0010_0111);
     }
 
     #[test]
     fn replace_overlong() {
         assert_eq!(0b0000_0000_0000_0000u16.replace(7..4, 0b1111_1111_1111),
+                   0b0000_0000_1111_0000);
+        #[cfg(feature = "inclusive_range")]
+        assert_eq!(0b0000_0000_0000_0000u16.replace(7...4, 0b1111_1111_1111),
                    0b0000_0000_1111_0000);
     }
 
