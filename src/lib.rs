@@ -56,6 +56,21 @@ use core::iter::Iterator;
 use core::num::Wrapping;
 use core::ops::{Range, Shl, Shr, Sub, Not, BitAnd, BitOr};
 
+#[derive(Clone, Copy, Debug)]
+pub struct BitRange {
+    start: usize,
+    end: usize,
+}
+
+impl From<Range<usize>> for BitRange {
+    fn from(range: Range<usize>) -> Self {
+        BitRange {
+            start: range.start,
+            end: range.end,
+        }
+    }
+}
+
 /// A trait for bit-twiddling utility functions.
 pub trait Twiddle {
     /// Creates a bitmask from a range.
@@ -67,7 +82,7 @@ pub trait Twiddle {
     /// let mask = u32::mask(9..0);
     /// assert_eq!(mask, 0x3ff);
     /// ```
-    fn mask(range: Range<usize>) -> Self;
+    fn mask<R: Into<BitRange>>(range: R) -> Self;
 
     /// Returns a given bit as a boolean.
     ///
@@ -91,7 +106,7 @@ pub trait Twiddle {
     /// let word: u16 = 0b0011_0101_1000_0000;
     /// assert_eq!(word.bits(12..8), 0b10101);
     /// ```
-    fn bits(self, range: Range<usize>) -> Self;
+    fn bits<R: Into<BitRange>>(self, R) -> Self;
 
     /// Replaces a set of bits with another.
     ///
@@ -106,7 +121,7 @@ pub trait Twiddle {
     /// # Notes
     ///
     /// - If too many bits are given, the highest bits will be truncated.
-    fn replace(self, range: Range<usize>, bits: Self) -> Self;
+    fn replace<R: Into<BitRange>>(self, range: R, bits: Self) -> Self;
 
     /// Splits a number into an iterator over sets of bits.
     ///
@@ -135,7 +150,8 @@ impl<T> Twiddle for T where
     T: Int,
     Wrapping<T>: Sub<Output=Wrapping<T>>
 {
-    fn mask(range: Range<usize>) -> T {
+    fn mask<R: Into<BitRange>>(range: R) -> T {
+        let range = range.into();
         debug_assert!(range.start < T::bit_width());
         debug_assert!(range.end <= range.start);
 
@@ -150,12 +166,14 @@ impl<T> Twiddle for T where
         ((self >> bit) & T::one()) != T::zero()
     }
 
-    fn bits(self, range: Range<usize>) -> T {
-        (self & T::mask(range.clone())) >> range.end
+    fn bits<R: Into<BitRange>>(self, range: R) -> T {
+        let range = range.into();
+        (self & T::mask(range)) >> range.end
     }
 
-    fn replace(self, range: Range<usize>, bits: T) -> T {
-        let mask = T::mask(range.clone());
+    fn replace<R: Into<BitRange>>(self, range: R, bits: T) -> T {
+        let range = range.into();
+        let mask = T::mask(range);
         (self & !mask) | ((bits << range.end) & mask)
     }
 
