@@ -160,12 +160,13 @@ pub trait Twiddle {
     /// - Once there are no more bits remaining, the iterator will return
     ///   None even if there are more lengths remaining.
     fn split<I>(self, lengths: I) -> Split<Self, <I as IntoIterator>::IntoIter>
-        where I: IntoIterator<Item=usize>, Self: Sized;
+        where I: IntoIterator<Item = usize>,
+              Self: Sized;
 }
 
-impl<T> Twiddle for T where
-    T: Int,
-    Wrapping<T>: Sub<Output=Wrapping<T>>
+impl<T> Twiddle for T
+    where T: Int,
+          Wrapping<T>: Sub<Output = Wrapping<T>>
 {
     fn mask<R: Into<BitRange>>(range: R) -> T {
         let range = range.into();
@@ -195,11 +196,12 @@ impl<T> Twiddle for T where
     }
 
     fn split<I>(self, lengths: I) -> Split<T, <I as IntoIterator>::IntoIter>
-    where I: IntoIterator<Item=usize> {
+        where I: IntoIterator<Item = usize>
+    {
         Split {
             number: self,
             lengths: lengths.into_iter(),
-            bits_left: T::bit_width() as isize
+            bits_left: T::bit_width() as isize,
         }
     }
 }
@@ -208,19 +210,21 @@ impl<T> Twiddle for T where
 pub struct Split<T, I> {
     number: T,
     lengths: I,
-    bits_left: isize
+    bits_left: isize,
 }
 
-impl<T, I> Iterator for Split<T, I> where
-    T: Twiddle + Int,
-    I: Iterator<Item=usize>
+impl<T, I> Iterator for Split<T, I>
+    where T: Twiddle + Int,
+          I: Iterator<Item = usize>
 {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        if self.bits_left <= 0 { return None }
+        if self.bits_left <= 0 {
+            return None;
+        }
 
         match self.lengths.next() {
-            None    => None,
+            None => None,
             Some(0) => Some(T::zero()),
             Some(n) => {
                 let start = T::bit_width() - 1;
@@ -316,7 +320,7 @@ mod tests {
 
         let mut bits = [false; 8];
         for i in 0..8 {
-            bits[i] = byte.bit(7-i);
+            bits[i] = byte.bit(7 - i);
         }
 
         assert_eq!(bits, [false, false, true, false, true, false, false, true]);
@@ -324,7 +328,7 @@ mod tests {
 
     #[test]
     fn bits_middle() {
-        assert_eq!(0b0010_1110_1001_0011u16.bits(10.. 3), 0b0000_0000_1101_0010);
+        assert_eq!(0b0010_1110_1001_0011u16.bits(10..3), 0b0000_0000_1101_0010);
     }
 
     #[test]
@@ -334,52 +338,42 @@ mod tests {
 
     #[test]
     fn bits_bottom() {
-        assert_eq!(0b0111_1011_1000_0110u16.bits( 6.. 0), 0b0000_0000_0000_0110);
+        assert_eq!(0b0111_1011_1000_0110u16.bits(6..0), 0b0000_0000_0000_0110);
     }
 
     #[test]
     fn bits_full() {
-        assert_eq!(0b1100_1010_0111_1000u16.bits(15.. 0), 0b1100_1010_0111_1000);
+        assert_eq!(0b1100_1010_0111_1000u16.bits(15..0), 0b1100_1010_0111_1000);
     }
 
     #[test]
     fn replace_middle() {
-        assert_eq!(
-            0b0111_0010_1100_1101u16.replace(11.. 5, 0b011_0011),
-            0b0111_0110_0110_1101u16
-        );
+        assert_eq!(0b0111_0010_1100_1101u16.replace(11..5, 0b011_0011),
+                   0b0111_0110_0110_1101u16);
     }
 
     #[test]
     fn replace_top() {
-        assert_eq!(
-            0b0011_1100_0101_0110u16.replace(15..10, 0b11_0101),
-            0b1101_0100_0101_0110u16
-        );
+        assert_eq!(0b0011_1100_0101_0110u16.replace(15..10, 0b11_0101),
+                   0b1101_0100_0101_0110u16);
     }
 
     #[test]
     fn replace_bottom() {
-        assert_eq!(
-            0b1111_1001_0100_1100u16.replace( 7.. 0, 0b1110_1110),
-            0b1111_1001_1110_1110u16
-        );
+        assert_eq!(0b1111_1001_0100_1100u16.replace(7..0, 0b1110_1110),
+                   0b1111_1001_1110_1110u16);
     }
 
     #[test]
     fn replace_full() {
-        assert_eq!(
-            0b1001_1001_1110_0001u16.replace(15.. 0, 0b1010_0101_0010_0111),
-            0b1010_0101_0010_0111
-        );
+        assert_eq!(0b1001_1001_1110_0001u16.replace(15..0, 0b1010_0101_0010_0111),
+                   0b1010_0101_0010_0111);
     }
 
     #[test]
     fn replace_overlong() {
-        assert_eq!(
-            0b0000_0000_0000_0000u16.replace(7.. 4, 0b1111_1111_1111),
-            0b0000_0000_1111_0000
-        );
+        assert_eq!(0b0000_0000_0000_0000u16.replace(7..4, 0b1111_1111_1111),
+                   0b0000_0000_1111_0000);
     }
 
     #[test]
