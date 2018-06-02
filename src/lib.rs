@@ -93,6 +93,17 @@ pub trait Twiddle {
     /// ```
     fn bits(self, range: Range<usize>) -> Self;
 
+    /// Sets one bit.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use twiddle::Twiddle;
+    /// let word: u8 = 0b1010_0000;
+    /// assert_eq!(word.set_bit(2, true), 0b1010_0100);
+    /// ```
+    fn set_bit(self, bit: usize, value: bool) -> Self;
+
     /// Replaces a set of bits with another.
     ///
     /// # Example
@@ -152,6 +163,11 @@ impl<T> Twiddle for T where
 
     fn bits(self, range: Range<usize>) -> T {
         (self & T::mask(range.clone())) >> range.end
+    }
+
+    fn set_bit(self, bit: usize, value: bool) -> T {
+        let mask = T::mask(bit..bit);
+        (self & !mask) | (if value { T::one() } else { T::zero() } << bit)
     }
 
     fn replace(self, range: Range<usize>, bits: T) -> T {
@@ -305,6 +321,14 @@ mod tests {
     #[test]
     fn bits_full() {
         assert_eq!(0b1100_1010_0111_1000u16.bits(15.. 0), 0b1100_1010_0111_1000);
+    }
+
+    #[test]
+    fn set_bit() {
+        assert_eq!(0b1100_1010_0111_1000u16.set_bit(1, true), 0b1100_1010_0111_1010);
+        assert_eq!(0b1100_1010_0111_1000u16.set_bit(3, true), 0b1100_1010_0111_1000);
+        assert_eq!(0b1100_1010_0111_1000u16.set_bit(14, false), 0b1000_1010_0111_1000);
+        assert_eq!(0b1100_1010_0111_1000u16.set_bit(13, false), 0b1100_1010_0111_1000);
     }
 
     #[test]
