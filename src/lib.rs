@@ -1,4 +1,4 @@
-// Copyright 2017 Nicolette Verlinden
+// Copyright (c) 2017-2018 Nicolette Verlinden
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -6,11 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! A library for various bit-twiddling utility functions.
-//!
-//! NOTE: Most of the functions in this library take ranges of
-//! the form `7..4`. These are inclusive ranges, not exclusive,
-//! signifying the bits 7 through 4 *including* 4.
+//! A small library for bit-twiddling.
 //!
 //! # Example
 //!
@@ -30,14 +26,14 @@
 //!         let b = unsafe { std::mem::transmute::<f32, u32>(f) };
 //!         UnpackedF32 {
 //!             negative: b.bit(31),
-//!             exponent: (b.bits(30..23) as i16) - 127,
-//!             fraction: b.bits(22..0)
+//!             exponent: (b.bits(30..=23) as i16) - 127,
+//!             fraction: b.bits(22..=0)
 //!         }
 //!     }
 //! }
 //!
 //! fn main() {
-//!     for f in (-5..6) {
+//!     for f in -5..=5 {
 //!         let u = UnpackedF32::from(f as f32);
 //!         println!("{:+} = {}1.{:023b} * 2^{}",
 //!             f,
@@ -54,20 +50,20 @@
 use core::cmp::PartialEq;
 use core::iter::Iterator;
 use core::num::Wrapping;
-use core::ops::{Range, Shl, Shr, Sub, Not, BitAnd, BitOr};
+use core::ops::{RangeInclusive, Shl, Shr, Sub, Not, BitAnd, BitOr};
 
 /// A trait for bit-twiddling utility functions.
 pub trait Twiddle {
-    /// Creates a bitmask from a range.
+    /// Creates a bitmask from a range of bits.
     ///
     /// # Example
     ///
     /// ```
     /// # use twiddle::Twiddle;
-    /// let mask = u32::mask(9..0);
+    /// let mask = u32::mask(9..=0);
     /// assert_eq!(mask, 0x3ff);
     /// ```
-    fn mask(range: Range<usize>) -> Self;
+    fn mask(range: RangeInclusive<usize>) -> Self;
 
     /// Returns a given bit as a boolean.
     ///
@@ -89,9 +85,9 @@ pub trait Twiddle {
     /// ```
     /// # use twiddle::Twiddle;
     /// let word: u16 = 0b0011_0101_1000_0000;
-    /// assert_eq!(word.bits(12..8), 0b10101);
+    /// assert_eq!(word.bits(12..=8), 0b10101);
     /// ```
-    fn bits(self, range: Range<usize>) -> Self;
+    fn bits(self, range: RangeInclusive<usize>) -> Self;
 
     /// Sets one bit.
     ///
@@ -111,13 +107,13 @@ pub trait Twiddle {
     /// ```
     /// # use twiddle::Twiddle;
     /// let word: u16 = 0b0000_1010_1010_0000;
-    /// assert_eq!(word.replace(7..4, 0b0001), 0b0000_1010_0001_0000);
+    /// assert_eq!(word.replace(7..=4, 0b0001), 0b0000_1010_0001_0000);
     /// ```
     ///
     /// # Notes
     ///
     /// - If too many bits are given, the highest bits will be truncated.
-    fn replace(self, range: Range<usize>, bits: Self) -> Self;
+    fn replace(self, range: RangeInclusive<usize>, bits: Self) -> Self;
 
     /// Splits a number into an iterator over sets of bits.
     ///
@@ -146,33 +142,34 @@ impl<T> Twiddle for T where
     T: Int,
     Wrapping<T>: Sub<Output=Wrapping<T>>
 {
-    fn mask(range: Range<usize>) -> T {
-        debug_assert!(range.start < T::bit_width());
-        debug_assert!(range.end <= range.start);
+    fn mask(range: RangeInclusive<usize>) -> T {
+        let (start, end) = (*range.start(), *range.end());
+        debug_assert!(start < T::bit_width());
+        debug_assert!(end <= start);
 
         // cshl is << but with overlong shifts resulting in 0
-        let top = Wrapping(T::one().cshl(1 + range.start - range.end));
+        let top = Wrapping(T::one().cshl(1 + start - end));
         let one = Wrapping(T::one());
 
-        (top - one).0 << range.end
+        (top - one).0 << end
     }
 
     fn bit(self, bit: usize) -> bool {
         ((self >> bit) & T::one()) != T::zero()
     }
 
-    fn bits(self, range: Range<usize>) -> T {
-        (self & T::mask(range.clone())) >> range.end
+    fn bits(self, range: RangeInclusive<usize>) -> T {
+        (self & T::mask(range.clone())) >> *range.end()
     }
 
     fn set_bit(self, bit: usize, value: bool) -> T {
-        let mask = T::mask(bit..bit);
+        let mask = T::mask(bit..=bit);
         (self & !mask) | (if value { T::one() } else { T::zero() } << bit)
     }
 
-    fn replace(self, range: Range<usize>, bits: T) -> T {
+    fn replace(self, range: RangeInclusive<usize>, bits: T) -> T {
         let mask = T::mask(range.clone());
-        (self & !mask) | ((bits << range.end) & mask)
+        (self & !mask) | ((bits << *range.end()) & mask)
     }
 
     fn split<I>(self, lengths: I) -> Split<T, <I as IntoIterator>::IntoIter>
@@ -207,7 +204,7 @@ impl<T, I> Iterator for Split<T, I> where
                 let start = T::bit_width() - 1;
                 let end = if n > start { 0 } else { start + 1 - n };
 
-                let bits = self.number.bits(start..end);
+                let bits = self.number.bits(start..=end);
                 self.number = self.number << n;
                 self.bits_left -= n as isize;
 
@@ -259,36 +256,36 @@ mod tests {
 
     #[test]
     fn mask_middle() {
-        assert_eq!(u8::mask(4..2), 0b0001_1100);
+        assert_eq!(u8::mask(4..=2), 0b0001_1100);
     }
 
     #[test]
     fn mask_top() {
-        assert_eq!(u8::mask(7..3), 0b1111_1000);
+        assert_eq!(u8::mask(7..=3), 0b1111_1000);
     }
 
     #[test]
     fn mask_bottom() {
-        assert_eq!(u8::mask(2..0), 0b0000_0111);
+        assert_eq!(u8::mask(2..=0), 0b0000_0111);
     }
 
     #[test]
     fn mask_full() {
-        assert_eq!(u8::mask(7..0), 0b1111_1111);
+        assert_eq!(u8::mask(7..=0), 0b1111_1111);
     }
 
     #[test]
     #[cfg(debug_assertions)]
     #[should_panic(expected = "assertion failed")]
     fn mask_reversed() {
-        u8::mask(2..4);
+        u8::mask(2..=4);
     }
 
     #[test]
     #[cfg(debug_assertions)]
     #[should_panic(expected = "assertion failed")]
     fn mask_overflow() {
-        u8::mask(99..2);
+        u8::mask(99..=2);
     }
 
     #[test]
@@ -305,60 +302,72 @@ mod tests {
 
     #[test]
     fn bits_middle() {
-        assert_eq!(0b0010_1110_1001_0011u16.bits(10.. 3), 0b0000_0000_1101_0010);
+        assert_eq!(0b0010_1110_1001_0011u16.bits(10..= 3), 0b0000_0000_1101_0010);
     }
 
     #[test]
     fn bits_top() {
-        assert_eq!(0b1110_0011_0011_1111u16.bits(15..12), 0b0000_0000_0000_1110);
+        assert_eq!(0b1110_0011_0011_1111u16.bits(15..=12), 0b0000_0000_0000_1110);
     }
 
     #[test]
     fn bits_bottom() {
-        assert_eq!(0b0111_1011_1000_0110u16.bits( 6.. 0), 0b0000_0000_0000_0110);
+        assert_eq!(0b0111_1011_1000_0110u16.bits( 6..= 0), 0b0000_0000_0000_0110);
     }
 
     #[test]
     fn bits_full() {
-        assert_eq!(0b1100_1010_0111_1000u16.bits(15.. 0), 0b1100_1010_0111_1000);
+        assert_eq!(0b1100_1010_0111_1000u16.bits(15..= 0), 0b1100_1010_0111_1000);
     }
 
     #[test]
-    fn set_bit() {
-        assert_eq!(0b1100_1010_0111_1000u16.set_bit(1, true), 0b1100_1010_0111_1010);
-        assert_eq!(0b1100_1010_0111_1000u16.set_bit(3, true), 0b1100_1010_0111_1000);
-        assert_eq!(0b1100_1010_0111_1000u16.set_bit(14, false), 0b1000_1010_0111_1000);
+    fn unset_false_bit() {
         assert_eq!(0b1100_1010_0111_1000u16.set_bit(13, false), 0b1100_1010_0111_1000);
+    }
+
+    #[test]
+    fn unset_true_bit() {
+        assert_eq!(0b1100_1010_0111_1000u16.set_bit(14, false), 0b1000_1010_0111_1000);
+    }
+
+    #[test]
+    fn set_false_bit() {
+        assert_eq!(0b1100_1010_0111_1000u16.set_bit(1, true), 0b1100_1010_0111_1010);
+    }
+
+    #[test]
+    fn set_true_bit() {
+        assert_eq!(0b1100_1010_0111_1000u16.set_bit(3, true), 0b1100_1010_0111_1000);
     }
 
     #[test]
     fn replace_middle() {
         assert_eq!(
-            0b0111_0010_1100_1101u16.replace(11.. 5, 0b011_0011),
-            0b0111_0110_0110_1101u16
+            0b0111_0010_1100_1101u16.replace(11..= 5, 0b011_0011),
+            0b0111_0110_0110_1101
         );
     }
 
     #[test]
     fn replace_top() {
         assert_eq!(
-            0b0011_1100_0101_0110u16.replace(15..10, 0b11_0101),
-            0b1101_0100_0101_0110u16
+            0b0011_1100_0101_0110u16.replace(15..=10, 0b11_0101),
+            0b1101_0100_0101_0110
         );
     }
 
     #[test]
     fn replace_bottom() {
         assert_eq!(
-            0b1111_1001_0100_1100u16.replace( 7.. 0, 0b1110_1110),
-            0b1111_1001_1110_1110u16
+            0b1111_1001_0100_1100u16.replace( 7..= 0, 0b1110_1110),
+            0b1111_1001_1110_1110
         );
     }
 
     #[test]
     fn replace_full() {
         assert_eq!(
-            0b1001_1001_1110_0001u16.replace(15.. 0, 0b1010_0101_0010_0111),
+            0b1001_1001_1110_0001u16.replace(15..= 0, 0b1010_0101_0010_0111),
             0b1010_0101_0010_0111
         );
     }
@@ -366,7 +375,7 @@ mod tests {
     #[test]
     fn replace_overlong() {
         assert_eq!(
-            0b0000_0000_0000_0000u16.replace(7.. 4, 0b1111_1111_1111),
+            0b0000_0000_0000_0000u16.replace( 7..= 4, 0b1111_1111_1111),
             0b0000_0000_1111_0000
         );
     }

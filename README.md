@@ -2,14 +2,24 @@
 
 A small library for bit-twiddling.
 
-You can use it as a dependency by adding it to your `Cargo.toml` file.
+[Documentation](https://docs.rs/twiddle)
+
+## Usage
+
+You can use it by adding this to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-twiddle = "0.3"
+twiddle = "1.0"
 ```
 
-[Documentation](https://docs.rs/twiddle)
+and adding this to the top of your crate root (`main.rs` or `lib.rs`):
+
+```rust
+extern crate twiddle;
+
+use twiddle::Twiddle;
+```
 
 ## Example
 
@@ -36,7 +46,7 @@ impl From<f32> for UnpackedF32 {
 }
 
 fn main() {
-    for f in (-5..6) {
+    for f in -5..=5 {
         let u = UnpackedF32::from(f as f32);
         println!("{:+} = {}1.{:023b} * 2^{}",
             f,
