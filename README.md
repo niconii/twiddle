@@ -36,11 +36,11 @@ struct UnpackedF32 {
 
 impl From<f32> for UnpackedF32 {
     fn from(f: f32) -> UnpackedF32 {
-        let b = unsafe { std::mem::transmute::<f32, u32>(f) };
+        let b = f.to_bits();
         UnpackedF32 {
             negative: b.bit(31),
-            exponent: (b.bits(30..23) as i16) - 127,
-            fraction: b.bits(22..0)
+            exponent: (b.bits(30..=23) as i16) - 127,
+            fraction: b.bits(22..=0)
         }
     }
 }
