@@ -235,10 +235,13 @@ macro_rules! impl_int {
         impl Int for $t {
             #[inline]
             fn bit_width() -> usize { $w }
+            
             #[inline]
             fn zero() -> Self { $z }
+            
             #[inline]
             fn one() -> Self { $o }
+            
             #[inline]
             fn cshl(self, n: usize) -> Self {
                 self.checked_shl(n as u32).unwrap_or(0)
