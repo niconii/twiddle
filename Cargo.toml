@@ -1,6 +1,6 @@
 [package]
 name = "twiddle"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Nicolette Verlinden <nicole@nicole.moe>"]
 
 description = "Bit-twiddling utility functions"

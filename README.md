@@ -10,7 +10,7 @@ You can use it by adding this to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-twiddle = "1.0"
+twiddle = "1.1"
 ```
 
 and adding this to the top of your crate root (`main.rs` or `lib.rs`):
