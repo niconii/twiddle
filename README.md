@@ -1,5 +1,7 @@
 # twiddle
 
+**NOTE:** This library is no longer maintained.
+
 A small library for bit-twiddling.
 
 [Documentation](https://docs.rs/twiddle)
